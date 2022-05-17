@@ -36,6 +36,8 @@ struct map {
 
     int (*is_empty)(map *);
 
+    int (*remove)(map*, char*);
+
     char *(*get)(map *, char *);
 
     char *(*get_key)(map *, char *);
@@ -95,6 +97,56 @@ int _push(map *self, char *key, char *value) {
         self->length += 1;
     }
     return 0;
+}
+
+/**
+ * Remove key-value pair from the map by key
+ *
+ * @param self pointer to the map
+ * @param key key
+ * @return 0 on success and non zero value on failure
+ */
+int _remove(map* self, char* key)
+{
+  if (self->get(self, key) == NULL)
+  {
+    return -1;
+  }
+  char** new_keys = (char**) malloc((self->length - 1) * sizeof(char*));
+  if (new_keys == NULL)
+  {
+    return -1;
+  }
+
+  char** new_values = (char**) malloc((self->length - 1) * sizeof(char*));
+  if (new_values == NULL)
+  {
+    return -1;
+  }
+  int new_buff_i = 0;
+  for (int i = 0; i < self->length; i++)
+  {
+    if (strcmp(self->keys[i], key) == 0)
+    {
+      continue;
+    }
+    new_keys[new_buff_i] = (char*) malloc((strlen(self->keys[i]) + 1) * sizeof(char));
+    strncpy(new_keys[new_buff_i], self->keys[i], strlen(self->keys[i]));
+    new_values[new_buff_i] = (char*) malloc((strlen(self->values[i]) + 1) * sizeof(char));
+    strncpy(new_values[new_buff_i], self->values[i], strlen(self->values[i]));
+    new_buff_i++;
+  }
+  for (int i = 0; i < self->length; i++)
+  {
+    free(self->keys[i]);
+    free(self->values[i]);
+  }
+  free(self->keys);
+  free(self->values);
+  self->keys = new_keys;
+  self->values = new_values;
+  self->length -= 1;
+  return 0;
 }
 
 /**
@@ -177,10 +229,15 @@ void map_clean(map *self) {
  */
 map *map_init() {
     map *self = (map *) malloc(sizeof(map));
+    if (self == NULL)
+   	{
+   		return NULL;
+   	}
     self->push = &_push;
     self->is_empty = &_is_empty;
     self->get = &_get;
     self->get_key = &_get_key;
+    self->remove = &_remove;
 
     return self;
 }
